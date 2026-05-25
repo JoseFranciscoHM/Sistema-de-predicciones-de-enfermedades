@@ -17,12 +17,5 @@ print('Datos sinteticos generados exitosamente')
 "
 fi
 
-for disease in dengue hantavirus covid; do
-    if [ ! -f "models/${disease}_model.keras" ]; then
-        echo "Entrenando modelo $disease..."
-        PYTHONPATH=src python src/train_model.py --disease "$disease" --epochs 2
-    fi
-done
-
 echo "=== Iniciando servidor ==="
 exec PYTHONPATH=src python -m uvicorn app:app --host 0.0.0.0 --port "$PORT"
