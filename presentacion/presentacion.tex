@@ -1,0 +1,377 @@
+% =============================================================================
+% presentacion.tex — Sistema de Predicción de Enfermedades con RNN
+% San Luis Potosí, México
+% =============================================================================
+
+\documentclass[10pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{appendixnumberbeamer}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{Sistema de Predicción de Enfermedades con Redes Neuronales Recurrentes}
+\titlegraphic{%
+  \includegraphics[height=1.5cm]{IICO-LOGO-AZUL.png}\hfill%
+  \includegraphics[height=1.5cm]{UASLP-LOGO-AZUL.png}%
+}
+
+\subtitle{San Luis Potosí, México — Hantavirus, COVID-19 y Dengue}
+\date{\today}
+\author{José Francisco Hernández Martínez}
+\institute{IICO — Universidad Autónoma de San Luis Potosí}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Contenido}
+  \setbeamertemplate{section in toc}[sections numbered]
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+% =============================================================================
+\section{Introducción}
+% =============================================================================
+
+\begin{frame}{Motivación}
+  \begin{itemize}
+    \item Las enfermedades infecciosas representan un desafío constante para la salud pública
+    \item San Luis Potosí presenta incidencia de hantavirus, COVID-19 y dengue
+    \item Las herramientas predictivas permiten anticipar brotes y optimizar recursos
+    \item Integración de datos epidemiológicos + tendencias de búsqueda web (Google Trends)
+  \end{itemize}
+  \vspace{0.5cm}
+  \begin{alertblock}{Objetivo}
+    Construir un sistema de predicción temprana basado en RNN que integre
+    datos epidemiológicos y tendencias de búsqueda para 58 municipios de SLP.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Arquitectura del Sistema}
+  \centering
+  % \includegraphics[width=0.9\textwidth]{diagrama_arquitectura.png}
+  
+  \begin{enumerate}
+    \item Recolección: Google Trends + APIs gubernamentales + CSV manual
+    \item Almacenamiento: SQLite con 5 tablas normalizadas
+    \item Modelo: LSTM bidireccional (2 capas, 64--128 unidades)
+    \item Visualización: Dashboard web con Plotly.js
+  \end{enumerate}
+\end{frame}
+
+% =============================================================================
+\section{Fundamentos Teóricos}
+% =============================================================================
+
+\begin{frame}{Redes Neuronales Recurrentes (RNN)}
+  \begin{itemize}
+    \item Las RNN capturan dependencias temporales en secuencias
+    \item A diferencia de las CNN, mantienen un estado oculto que evoluciona con el tiempo
+  \end{itemize}
+
+  \begin{equation*}
+    h_t = \tanh(W_{ih} x_t + b_{ih} + W_{hh} h_{t-1} + b_{hh})
+  \end{equation*}
+
+  \begin{itemize}
+    \item \textbf{Problema}: gradientes explosivos/desvanecientes en secuencias largas
+    \item \textbf{Solución}: LSTM (Long Short-Term Memory) con compuertas de olvido, entrada y salida
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{LSTM — Long Short-Term Memory}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Compuertas:}
+    \begin{itemize}
+      \item Olvido: $f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)$
+      \item Entrada: $i_t = \sigma(W_i \cdot [h_{t-1}, x_t] + b_i)$
+      \item Salida: $o_t = \sigma(W_o \cdot [h_{t-1}, x_t] + b_o)$
+    \end{itemize}
+    
+    \column{0.48\textwidth}
+    \textbf{Estado de celda:}
+    \begin{itemize}
+      \item $\tilde{C}_t = \tanh(W_C \cdot [h_{t-1}, x_t] + b_C)$
+      \item $C_t = f_t * C_{t-1} + i_t * \tilde{C}_t$
+      \item $h_t = o_t * \tanh(C_t)$
+    \end{itemize}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{itemize}
+    \item La capa bidireccional procesa la secuencia en ambas direcciones
+    \item Captura patrones antes y después de cada punto temporal
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Arquitectura del Modelo}
+  \centering
+  \begin{tabular}{lc}
+    \toprule
+    \textbf{Componente} & \textbf{Detalle} \\
+    \midrule
+    Entrada & $21$ días $\times$ $N$ características \\
+    Capa LSTM Bidireccional 1 & 64 unidades, return sequences \\
+    Dropout & 0.3 \\
+    Capa LSTM Bidireccional 2 & 128 unidades \\
+    Dropout & 0.3 \\
+    Salida 1 (Clasificación) & Sigmoide $\rightarrow$ probabilidad de brote \\
+    Salida 2 (Regresión) & ReLU $\rightarrow$ casos estimados en 7 días \\
+    \bottomrule
+  \end{tabular}
+
+  \begin{itemize}
+    \item Pérdida combinada: binary\_crossentropy + mse
+    \item Optimizador: Adam, learning rate $10^{-3}$
+    \item Early stopping con paciencia de 10 épocas
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{Metodología}
+% =============================================================================
+
+\begin{frame}{Pipeline de Datos}
+  \begin{enumerate}
+    \item \textbf{Google Trends}: Extracción por palabra clave por municipio (vía pytrends)
+      \begin{itemize}
+        \item 5--7 palabras clave por enfermedad
+        \item Fallback graceful ante HTTP 429
+      \end{itemize}
+    \item \textbf{Datos epidemiológicos}: Fuentes oficiales (Datos Abiertos México, SINAIS)
+      \begin{itemize}
+        \item Casos confirmados, hospitalizaciones, muertes
+        \item Stubs para desarrollo sin conexión real
+      \end{itemize}
+    \item \textbf{Importación CSV}: Alternativa manual con validación de formato
+    \item \textbf{Datos sintéticos}: Generación con patrones estacionales para 58 municipios
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Características por Enfermedad}
+  Cada enfermedad tiene un conjunto específico de palabras clave de Google Trends:
+  
+  \begin{table}
+    \centering
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Enfermedad} & \textbf{Keywords} & \textbf{Características} \\
+      \midrule
+      Dengue & 8 & 8 + 3 = 11 \\
+      Hantavirus & 10 & 10 + 3 = 13 \\
+      COVID-19 & 7 & 7 + 3 = 10 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  
+  Las 3 características epidemiológicas comunes:
+  \begin{itemize}
+    \item Casos confirmados (normalizados $\div 100$)
+    \item Hospitalizaciones (normalizadas $\div 20$)
+    \item Muertes (normalizadas $\div 5$)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Generación de Datos Sintéticos}
+  \begin{itemize}
+    \item Período: 2 años (730 días)
+    \item 58 municipios con pesos poblacionales
+    \item Patrones estacionales realistas:
+      \begin{itemize}
+        \item \textbf{Dengue}: pico en temporada de lluvias (junio--octubre)
+        \item \textbf{COVID-19}: pico en invierno (diciembre--febrero)
+        \item \textbf{Hantavirus}: brotes en primavera y otoño
+      \end{itemize}
+    \item Ruido aleatorio para simular variabilidad real
+    \item 29,750 registros de tendencias + 152,250 registros epidemiológicos
+  \end{itemize}
+\end{frame}
+
+% =============================================================================
+\section{Resultados}
+% =============================================================================
+
+\begin{frame}{Métricas del Modelo}
+  \begin{table}
+    \centering
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Modelo} & \textbf{Sensibilidad} & \textbf{Precisión} & \textbf{RMSE} \\
+      \midrule
+      Dengue & 1.000 & 1.000 & 581.58 \\
+      Hantavirus & 1.000 & 1.000 & 484.33 \\
+      COVID-19 & 1.000 & 1.000 & 741.35 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \begin{itemize}
+    \item Sensibilidad perfecta en datos sintéticos por etiquetado agregado
+    \item RMSE refleja magnitud de casos; COVID-19 presenta mayor variabilidad
+    \item En producción con datos reales se espera sensibilidad $> 0.75$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Dashboard Web}
+  \centering
+  % \includegraphics[width=0.85\textwidth]{dashboard_screenshot.png}
+  
+  \begin{itemize}
+    \item FastAPI como backend (8 endpoints REST)
+    \item Plotly.js para visualizaciones interactivas
+    \item Actualización automática cada 60 segundos
+    \item Tres vistas: dengue, hantavirus, COVID-19
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Componentes del Dashboard}
+  \begin{columns}[T]
+    \column{0.48\textwidth}
+    \textbf{Tarjeta de Predicción}
+    \begin{itemize}
+      \item Probabilidad de brote (0--100\%)
+      \item Casos estimados a 7 días
+      \item Intervalo de confianza al 95\%
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    \textbf{Métricas del Modelo}
+    \begin{itemize}
+      \item Sensibilidad, especificidad
+      \item RMSE, precisión
+    \end{itemize}
+    
+    \column{0.48\textwidth}
+    \textbf{Serie Temporal}
+    \begin{itemize}
+      \item Casos vs hospitalizaciones vs muertes
+      \item Ventana configurable (7--365 días)
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    \textbf{Mapa de Calor}
+    \begin{itemize}
+      \item Distribución por municipio
+      \item 58 municipios de SLP
+      \item Código de colores por intensidad
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+% =============================================================================
+\section{Stack Tecnológico}
+% =============================================================================
+
+\begin{frame}{Stack Tecnológico}
+  \begin{table}
+    \centering
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Componente} & \textbf{Tecnología} \\
+      \midrule
+      Lenguaje & Python 3.11 \\
+      Deep Learning & TensorFlow 2.18 / Keras \\
+      Backend & FastAPI 0.115 (Uvicorn) \\
+      Base de datos & SQLite (psycopg2 para PostgreSQL opcional) \\
+      Frontend & HTML5 + Plotly.js 2.32 \\
+      Tendencias & pytrends (Google Trends) \\
+      Testing & pytest 8.3 \\
+      Estilo & Código limpio sin comentarios \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{Estructura del Proyecto}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+    \texttt{src/app.py} --- FastAPI \\
+    \texttt{src/database.py} --- SQLite CRUD \\
+    \texttt{src/predictor.py} --- Inferencia RNN \\
+    \texttt{src/train\_model.py} --- Entrenamiento \\
+    \texttt{src/synthetic\_data.py} --- Datos sinteticos \\
+    \texttt{src/import\_csv.py} --- Importacion CSV \\
+    \texttt{src/update\_from\_apis.py} --- Pipeline diario \\
+    \texttt{src/data\_sources/google\_trends.py} \\
+    \texttt{src/data\_sources/government\_apis.py} \\
+    \texttt{tests/} --- 5 módulos de prueba \\
+    \texttt{static/} --- HTML + CSS + JS \\
+    \texttt{models/} --- Modelos .keras \\
+    \texttt{data/database.db} --- SQLite poblada
+    
+    \column{0.42\textwidth}
+    32 tests unitarios \\
+    \vspace{0.2cm}
+    8 endpoints REST \\
+    \vspace{0.2cm}
+    3 modelos entrenados \\
+    \vspace{0.2cm}
+    4 scripts independientes
+  \end{columns}
+\end{frame}
+
+% =============================================================================
+\section{Conclusiones y Trabajo Futuro}
+% =============================================================================
+
+\begin{frame}{Conclusiones}
+  \begin{itemize}
+    \item Sistema funcional de predicción de enfermedades con RNN para SLP
+    \item Integración exitosa de múltiples fuentes de datos
+    \item Dashboard web interactivo con actualización en tiempo real
+    \item Arquitectura modular permite agregar nuevas enfermedades fácilmente
+    \item Diseñado para funcionar sin conexión a internet (datos sintéticos + CSV)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Trabajo Futuro}
+  \begin{itemize}
+    \item \textbf{Fase 2}: Integración con Google Forms para captura de datos manual
+    \item \textbf{Validación clínica}: Evaluación del modelo con datos reales de SLP
+    \item \textbf{Modelos avanzados}: Experimentar con Transformers y atención temporal
+    \item \textbf{Escalabilidad}: Migrar a PostgreSQL y desplegar en servidor Cloud
+    \item \textbf{Aplicación móvil}: Notificaciones push para alertas de brotes
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[standout]
+  \Huge ¿Preguntas?
+  
+  \vspace{1cm}
+  \large Código fuente disponible en GitHub
+\end{frame}
+
+% =============================================================================
+% Referencias
+% =============================================================================
+\setbeamertemplate{frametitle continuation}{}
+\begin{frame}[allowframebreaks]{Referencias}
+  \begin{thebibliography}{9}
+    \bibitem{hochreiter1997}
+      S. Hochreiter y J. Schmidhuber,
+      \textit{Long Short-Term Memory},
+      Neural Computation, 1997.
+    \bibitem{chollet2018}
+      F. Chollet,
+      \textit{Deep Learning with Python},
+      Manning, 2018.
+    \bibitem{google2019}
+      Google LLC,
+      \textit{Google Trends API},
+      trends.google.com
+    \bibitem{fastapi2023}
+      S. Ramírez,
+      \textit{FastAPI},
+      fastapi.tiangolo.com
+  \end{thebibliography}
+\end{frame}
+
+\end{document}

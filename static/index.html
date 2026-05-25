@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Vigilancia Epidemiologica - SLP</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Sistema de Vigilancia Epidemiologica</h1>
+        <p>Prediccion de brotes con redes neuronales recurrentes &mdash; San Luis Potosi, Mexico</p>
+        <p class="header-sub">Unidad de Inteligencia Epidemiologica &mdash; IICO &mdash; UASLP</p>
+    </header>
+
+    <nav id="disease-tabs">
+        <button class="tab active" data-disease="dengue">Dengue</button>
+        <button class="tab" data-disease="hantavirus">Hantavirus</button>
+        <button class="tab" data-disease="covid">COVID-19</button>
+    </nav>
+
+    <div class="status-bar" id="status-bar">Cargando datos epidemiologicos...</div>
+
+    <main>
+        <section id="forecast-card" class="card">
+            <h2>Pronostico RNN &mdash; Proximos 7 Dias</h2>
+            <div id="forecast-content">
+                <div class="metric" id="prob-brote">
+                    <span class="metric-label">Probabilidad de Brote</span>
+                    <span class="metric-value">--</span>
+                </div>
+                <div class="metric" id="casos-estimados">
+                    <span class="metric-label">Casos Estimados (prox. 7d)</span>
+                    <span class="metric-value">--</span>
+                </div>
+                <div class="metric" id="ic">
+                    <span class="metric-label">Intervalo de Confianza (95%)</span>
+                    <span class="metric-value">--</span>
+                </div>
+            </div>
+            <div id="forecast-chart" class="mini-chart"></div>
+        </section>
+
+        <section id="metrics-card" class="card">
+            <h2>Rendimiento del Modelo</h2>
+            <div id="metrics-content">
+                <div class="metric"><span class="metric-label">Sensibilidad (V.Positivos)</span><span class="metric-value" id="m-sens">--</span></div>
+                <div class="metric"><span class="metric-label">Especificidad (V.Negativos)</span><span class="metric-value" id="m-spec">--</span></div>
+                <div class="metric"><span class="metric-label">Error RMSE</span><span class="metric-value" id="m-rmse">--</span></div>
+                <div class="metric"><span class="metric-label">Precision Diagnostica</span><span class="metric-value" id="m-prec">--</span></div>
+                <div class="metric"><span class="metric-label">Ultimo Entrenamiento</span><span class="metric-value" id="m-trained">--</span></div>
+            </div>
+        </section>
+
+        <section id="trends-card" class="card full-width">
+            <h2>Tendencias de Busqueda Web (Google Trends)</h2>
+            <div id="trends-chart" class="chart-container"></div>
+            <details class="kw-details">
+                <summary>Gestionar palabras clave &mdash; <span id="kw-count">0</span> activas</summary>
+                <div class="kw-manager">
+                    <div class="kw-list" id="kw-list"></div>
+                    <div class="kw-add-form">
+                        <input type="text" id="kw-input" placeholder="Nueva palabra clave..." maxlength="100">
+                        <button id="kw-add-btn">Agregar</button>
+                        <button id="kw-retrain-btn" class="btn-secondary">Reentrenar modelo</button>
+                    </div>
+                    <p class="kw-hint">Las nuevas palabras clave se usaran al reentrenar la red neuronal.</p>
+                </div>
+            </details>
+        </section>
+
+        <section id="timeseries-card" class="card full-width">
+            <h2>Serie Temporal: Casos Confirmados</h2>
+            <div id="timeseries-chart" class="chart-container"></div>
+        </section>
+
+        <section id="heatmap-card" class="card full-width">
+            <h2>Distribucion por Municipio</h2>
+            <div id="heatmap-chart" class="chart-container"></div>
+        </section>
+
+        <section id="report-case-card" class="card full-width">
+            <h2>Registro Clinico</h2>
+            <p class="form-desc">Formulario para el personal medico — los datos ingresados alimentan el modelo predictivo</p>
+            <form id="case-form" class="case-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-disease">Diagnostico / Enfermedad</label>
+                        <select id="form-disease" required>
+                            <option value="dengue">Dengue</option>
+                            <option value="hantavirus">Hantavirus</option>
+                            <option value="covid">COVID-19</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-municipality">Municipio de Residencia</label>
+                        <select id="form-municipality" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-date">Fecha de Consulta</label>
+                        <input type="date" id="form-date" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-cases">Casos Confirmados</label>
+                        <input type="number" id="form-cases" min="0" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-hosp">Hospitalizaciones</label>
+                        <input type="number" id="form-hosp" min="0" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-deaths">Defunciones</label>
+                        <input type="number" id="form-deaths" min="0" value="0" required>
+                    </div>
+                </div>
+                <fieldset class="form-fieldset">
+                    <legend>Sintomas y Signos Clinicos</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><input type="checkbox" class="symptom-cb" value="fiebre"> Fiebre &gt;38&deg;C</label>
+                            <label><input type="checkbox" class="symptom-cb" value="cefalea"> Cefalea</label>
+                            <label><input type="checkbox" class="symptom-cb" value="mialgias"> Mialgias / Artralgias</label>
+                            <label><input type="checkbox" class="symptom-cb" value="dolor_retroocular"> Dolor Retroocular</label>
+                            <label><input type="checkbox" class="symptom-cb" value="rash"> Exantema / Rash</label>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" class="symptom-cb" value="tos"> Tos / Disnea</label>
+                            <label><input type="checkbox" class="symptom-cb" value="hemorragia"> Manifestaciones Hemorragicas</label>
+                            <label><input type="checkbox" class="symptom-cb" value="dolor_abdominal"> Dolor Abdominal</label>
+                            <label><input type="checkbox" class="symptom-cb" value="nausea"> Nausea / Vomito</label>
+                            <label><input type="checkbox" class="symptom-cb" value="hipotension"> Hipotension / Shock</label>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="form-row">
+                    <div class="form-group severity-group" id="severity-dengue" style="display:none">
+                        <label for="form-dengue-severity">Gravedad del Dengue</label>
+                        <select id="form-dengue-severity">
+                            <option value="">-- Seleccione --</option>
+                            <option value="sin_signos_alarma">Dengue sin signos de alarma</option>
+                            <option value="con_signos_alarma">Dengue con signos de alarma</option>
+                            <option value="grave">Dengue grave</option>
+                        </select>
+                    </div>
+                    <div class="form-group severity-group" id="severity-hantavirus" style="display:none">
+                        <label for="form-hantavirus-type">Tipo de Hantavirus</label>
+                        <select id="form-hantavirus-type">
+                            <option value="">-- Seleccione --</option>
+                            <option value="andes">Andes (Andes virus)</option>
+                            <option value="sin_nombre">Sin Nombre (SNV)</option>
+                            <option value="seoul">Seoul (SEOV)</option>
+                            <option value="no_identificado">No identificado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label for="form-reporter">Medico Responsable</label>
+                        <input type="text" id="form-reporter" placeholder="Dr. Apellido, Nombre" maxlength="200">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full">
+                        <label>
+                            <input type="checkbox" id="form-autoretrain">
+                            Reentrenar automaticamente la red neuronal con este caso
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="form-submit">Registrar Caso Clinico</button>
+                    <span id="form-status" class="form-status"></span>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>Datos sinteticos para propositos de demostracion | Dashboard se actualiza cada 60 segundos</p>
+        <p>Hospital Central &mdash; IICO &mdash; Facultad de Medicina &mdash; UASLP</p>
+    </footer>
+
+    <script src="/static/js/config.js"></script>
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/map.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/case-form.js"></script>
+    <script src="/static/js/keywords.js"></script>
+</body>
+</html>

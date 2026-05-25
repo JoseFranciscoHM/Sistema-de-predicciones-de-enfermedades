@@ -1,0 +1,44 @@
+# github-config.yaml
+# =============================================================================
+# GitHub repository configuration for the SDD Harness.
+# Each user/team member should customize this file for their environment.
+#
+# The agent reads this file when repository operations are needed
+# (e.g., creating a new repo, pushing changes).
+# =============================================================================
+
+github:
+  # GitHub username. Used for repository creation and push operations.
+  username: "Marianinpb"
+
+  # GitHub organization. Leave empty ("") for personal repositories.
+  # If set, repositories will be created under this organization.
+  organization: ""
+
+  # Default visibility for new repositories.
+  # Options: "private", "public", "internal" (GitHub Enterprise only)
+  default_visibility: "public"
+
+  # If true, the agent will automatically create a GitHub repository
+  # when initializing a new project with the SDD Harness.
+  # If false, the agent will only initialize a local Git repository.
+  create_on_init: false
+
+  # Default branch name for new repositories.
+  default_branch: "main"
+
+  # Enable branch protection rules on the default branch.
+  # When true, the agent will configure:
+  #   - Require pull request reviews before merging
+  #   - Require status checks to pass before merging
+  branch_protection: false
+
+  # Git commit message format.
+  # Available placeholders: {phase}, {task_id}, {description}
+  commit_format: "[SDD/{phase}] {task_id}: {description}"
+
+  # Example commit messages:
+  #   [SDD/specify] SPEC-01: Add user authentication specification
+  #   [SDD/plan] PLAN-01: Design authentication module architecture
+  #   [SDD/implement] TASK-03: Implement JWT token validation
+  #   [SDD/review] QG-01: Fix test coverage to meet 80% threshold

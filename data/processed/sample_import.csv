@@ -1,0 +1,6 @@
+date,municipality,disease,confirmed_cases,hospitalizations,deaths
+2024-06-01,San Luis Potosi,dengue,12,3,0
+2024-06-01,Soledad de Graciano Sanchez,covid,8,1,0
+2024-06-02,Ciudad Valles,hantavirus,2,1,0
+2024-06-02,Matehuala,dengue,5,1,1
+2024-06-03,Rioverde,covid,15,4,1

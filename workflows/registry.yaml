@@ -1,0 +1,126 @@
+# registry.yaml
+# =============================================================================
+# Command Registry — Maps high-level SDD commands to their workflow definitions
+# and the rules that apply during each phase.
+#
+# The agent reads this file to determine which workflow to execute and which
+# rules to enforce when a command is invoked.
+# =============================================================================
+
+commands:
+  specify:
+    description: "Phase 1: Discovery and Specification"
+    workflow: "workflows/commands/specify.md"
+    rules_enforced:
+      - "rules/coding-standards.md"    # For naming conventions in the spec
+    templates_used:
+      - "templates/spec-template.md"
+    outputs:
+      - "specs/{SPEC-ID}-{name}.md"
+    requires_approval: true
+    next_command: "plan"
+
+  plan:
+    description: "Phase 2: Design and Planning"
+    workflow: "workflows/commands/plan.md"
+    rules_enforced:
+      - "rules/coding-standards.md"
+      - "rules/security-rules.md"
+    templates_used:
+      - "templates/plan-template.md"
+      - "templates/tasks-template.md"
+      - "templates/data-model-template.md"
+    outputs:
+      - "plans/{PLAN-ID}-{name}.md"
+      - "tasks/{PLAN-ID}-tasks.md"
+    requires_approval: true
+    next_command: "implement"
+
+  implement:
+    description: "Phase 3: Implementation with TDD"
+    workflow: "workflows/commands/implement.md"
+    rules_enforced:
+      - "rules/coding-standards.md"
+      - "rules/security-rules.md"
+      - "rules/quality-gates.json"
+    templates_used: []
+    outputs:
+      - "Source code files (per task boundary)"
+      - "Test files"
+    requires_approval: false
+    triggers_review: true
+
+  review:
+    description: "Quality Gates and Code Review"
+    workflow: "workflows/commands/review.md"
+    rules_enforced:
+      - "rules/coding-standards.md"
+      - "rules/security-rules.md"
+      - "rules/quality-gates.json"
+    templates_used: []
+    outputs:
+      - "Review report"
+      - "memory/decision-log.md (updated)"
+    requires_approval: false
+    max_retries: 2
+
+# ---------------------------------------------------------------------------
+# Lifecycle Flow
+# ---------------------------------------------------------------------------
+lifecycle:
+  master_workflow: "workflows/sdd-lifecycle.md"
+  phase_order:
+    - "specify"
+    - "plan"
+    - "implement"
+  phase_skip_allowed: false
+  human_approval_required_between_phases: true
+
+# ---------------------------------------------------------------------------
+# Memory Files
+# ---------------------------------------------------------------------------
+memory:
+  context: "memory/project-context.md"
+  decisions: "memory/decision-log.md"
+  decisions_append_only: true
+
+# ---------------------------------------------------------------------------
+# Tipos de Proyecto Especializados
+# ---------------------------------------------------------------------------
+# Cuando project.type coincide con un tipo listado aquí, el harness usa las
+# plantillas especializadas en lugar de las genéricas de templates/.
+#
+# Los comandos /specify, /plan y /implement detectan automáticamente el tipo
+# y cargan las plantillas correspondientes. No se requieren comandos nuevos.
+# ---------------------------------------------------------------------------
+project_types:
+  exposition:
+    description: "Generación automática de presentaciones académicas"
+    templates_override:
+      spec: "project_types/exposition/spec_template.md"
+      plan: "project_types/exposition/plan_template.md"
+      tasks: "project_types/exposition/tasks_template.md"
+    additional_assets:
+      - source: "project_types/exposition/templates/"
+        destination: "presentacion/"
+        copy_condition: "Copiar SOLO al ejecutar TASK-04 en /implement. No copiar en otros tipos de proyecto."
+    outputs:
+      - "specs/SPEC-XX-exposicion.md"
+      - "plans/PLAN-XX-exposicion.md"
+      - "tasks/TASKS-XX-exposicion.md"
+      - "resumen_paper.md | resumen_tema.md | resumen_proyecto.md"
+      - "presentacion/presentacion.tex"
+      - "presentacion/presentacion.pdf  (si el compilador LaTeX está disponible)"
+      - "guion_exposicion.md"
+    rules:
+      - "CRÍTICA: Los datos del expositor (title, author, institution, date) SIEMPRE
+         se preguntan explícitamente al usuario en /specify. NUNCA se infieren
+         de la fuente (paper, libro, repositorio)."
+      - "IDIOMA: Los entregables se generan en español por defecto (language: es).
+         Solo cambiar con confirmación humana explícita. El idioma de la fuente
+         NO determina el idioma de la presentación."
+      - "COMPILACIÓN: Antes de compilar LaTeX, verificar disponibilidad de pdflatex
+         o latexmk. Si no están disponibles, preguntar al usuario."
+      - "ASSETS: Los archivos de project_types/exposition/templates/ SOLO se copian
+         para proyectos de tipo exposition, nunca para otros tipos."
+

@@ -1,0 +1,96 @@
+% =============================================================================
+% presentacion.tex — Plantilla LaTeX para Exposición Académica
+% Harness SDD Antigravity — Módulo de Tipo de Proyecto: exposition
+%
+% INSTRUCCIONES PARA EL AGENTE:
+%   Reemplazar los siguientes placeholders con los datos provistos por el usuario:
+%     {{TITULO}}           — Título principal de la presentación
+%     {{SUBTITULO}}        — Subtítulo (puede dejarse vacío si no aplica)
+%     {{AUTOR}}            — Nombre completo del expositor
+%     {{INSTITUCION}}      — Institución académica del expositor
+%     {{FECHA}}            — Fecha de la presentación (texto libre o \today)
+%     {{CONTENIDO_SECCIONES}} — Secciones y frames generados a partir de la fuente
+%
+%   REGLA CRÍTICA: Los valores de los placeholders SIEMPRE deben ser
+%   proporcionados EXPLÍCITAMENTE por el usuario. NUNCA inferirlos del
+%   contenido de la fuente (paper, libro, repositorio).
+%
+%   IDIOMA: Por defecto esta plantilla usa español. Si el usuario confirmó
+%   explícitamente otro idioma, cambiar el paquete babel correspondiente.
+% =============================================================================
+
+\documentclass[10pt]{beamer}
+
+\usetheme[progressbar=frametitle]{metropolis}
+\usecolortheme{aggie}
+
+\usepackage{appendixnumberbeamer}
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+\usepackage{xspace}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}   % Cambiar solo si el usuario confirmó explícitamente otro idioma
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+
+% -----------------------------------------------------------------------------
+% Metadatos de la presentación
+% Todos los valores provienen de datos proporcionados explícitamente por el usuario
+% -----------------------------------------------------------------------------
+\title{{{TITULO}}}
+\titlegraphic{%
+  \includegraphics[height=1.5cm]{IICO-LOGO-AZUL.png}\hfill\includegraphics[height=1.5cm]{UASLP-LOGO-AZUL.png}%
+}
+
+\subtitle{{{SUBTITULO}}}
+\date{{{FECHA}}}
+\author{{{AUTOR}}}
+\institute{{{INSTITUCION}}}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Contenido}
+  \setbeamertemplate{section in toc}[sections numbered]
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% CONTENIDO DE LA PRESENTACIÓN
+% El agente reemplaza {{CONTENIDO_SECCIONES}} con los frames generados
+% a partir del análisis de la fuente (paper, tema+libro, o repositorio).
+%
+% Formato esperado de cada sección:
+%
+%   \section{Nombre de la Sección}
+%
+%   \begin{frame}{Título del Frame}
+%     \begin{itemize}
+%       \item Punto clave 1
+%       \item Punto clave 2
+%     \end{itemize}
+%   \end{frame}
+%
+% Para ecuaciones matemáticas, usar entornos equation o equation*.
+% Para bloques destacados, usar \begin{alertblock}{Título}...\end{alertblock}.
+% -----------------------------------------------------------------------------
+
+{{CONTENIDO_SECCIONES}}
+
+% -----------------------------------------------------------------------------
+% Referencias bibliográficas
+% -----------------------------------------------------------------------------
+\setbeamertemplate{frametitle continuation}{}
+\begin{frame}[allowframebreaks]{Referencias}
+  \nocite{*}
+  \bibliography{presentacion}
+  \bibliographystyle{abbrv}
+\end{frame}
+
+\end{document}

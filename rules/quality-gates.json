@@ -1,0 +1,145 @@
+{
+  "quality_gates": {
+    "description": "Quality gates are automated checks that the agent MUST execute before marking a task as completed. Only gates matching the project's tech_stack (from harness-config.yaml) are executed.",
+    "pre_commit": [
+      {
+        "id": "QG-01",
+        "description": "All new and modified Python code must have test coverage >= 80%.",
+        "language": "python",
+        "command": "pytest --cov=. --cov-report=term-missing --cov-fail-under=80",
+        "mandatory": true,
+        "error_message": "Test coverage is below 80%. Cannot proceed until coverage is increased."
+      },
+      {
+        "id": "QG-02",
+        "description": "Python code must pass the Ruff linter with zero errors.",
+        "language": "python",
+        "command": "ruff check .",
+        "mandatory": true,
+        "error_message": "Ruff linter found errors. Fix all linting issues before proceeding."
+      },
+      {
+        "id": "QG-03",
+        "description": "Python code should pass type checking with mypy.",
+        "language": "python",
+        "command": "mypy . --ignore-missing-imports",
+        "mandatory": false,
+        "error_message": "mypy found type errors. Review and fix type annotations."
+      },
+      {
+        "id": "QG-04",
+        "description": "C code must compile with all warnings treated as errors.",
+        "language": "c",
+        "command": "gcc -Wall -Wextra -Werror -c {source_files}",
+        "command_alt": "idf.py build",
+        "mandatory": true,
+        "error_message": "C code has compilation warnings/errors. Fix all issues before proceeding.",
+        "notes": "Use 'command_alt' for ESP-IDF projects. Replace {source_files} with actual file paths."
+      },
+      {
+        "id": "QG-05",
+        "description": "C code must pass static analysis with cppcheck.",
+        "language": "c",
+        "command": "cppcheck --enable=all --error-exitcode=1 {source_files}",
+        "mandatory": false,
+        "error_message": "cppcheck found potential issues. Review and address them."
+      },
+      {
+        "id": "QG-06",
+        "description": "VHDL code must compile without errors.",
+        "language": "vhdl",
+        "command": "ghdl -a {source_files}",
+        "command_alt": "quartus_map --read_settings_files=on --write_settings_files=off {project} -c {project}",
+        "mandatory": true,
+        "error_message": "VHDL code has compilation errors. Fix all syntax and semantic issues."
+      },
+      {
+        "id": "QG-07",
+        "description": "VHDL testbenches must simulate successfully.",
+        "language": "vhdl",
+        "command": "ghdl -r {testbench_entity} --stop-time=1ms",
+        "mandatory": false,
+        "error_message": "VHDL simulation failed. Check testbench and design."
+      },
+      {
+        "id": "QG-08",
+        "description": "Verilog code must compile without errors.",
+        "language": "verilog",
+        "command": "iverilog -o {output} {source_files}",
+        "command_alt": "quartus_map --read_settings_files=on --write_settings_files=off {project} -c {project}",
+        "mandatory": true,
+        "error_message": "Verilog code has compilation errors. Fix all issues."
+      },
+      {
+        "id": "QG-09",
+        "description": "Verilog testbenches must simulate successfully.",
+        "language": "verilog",
+        "command": "vvp {compiled_testbench}",
+        "mandatory": false,
+        "error_message": "Verilog simulation failed. Check testbench and design."
+      },
+      {
+        "id": "QG-10",
+        "description": "LaTeX documents must compile without errors.",
+        "language": "latex",
+        "command": "latexmk -pdf -interaction=nonstopmode {main_file}",
+        "command_alt": "pdflatex -interaction=nonstopmode {main_file}",
+        "mandatory": true,
+        "error_message": "LaTeX compilation failed. Fix all errors in the document."
+      },
+      {
+        "id": "QG-11",
+        "description": "MATLAB scripts must pass syntax check.",
+        "language": "matlab",
+        "command": "matlab -batch \"checkcode('{source_file}')\"",
+        "command_alt": "mlint {source_file}",
+        "mandatory": false,
+        "error_message": "MATLAB code has syntax or style warnings.",
+        "notes": "Requires MATLAB to be installed and in PATH. This gate is optional if MATLAB CLI is not available."
+      },
+      {
+        "id": "QG-12",
+        "description": "Mathematica notebooks must pass syntax verification.",
+        "language": "mathematica",
+        "command": "wolframscript -f {source_file} -check",
+        "mandatory": false,
+        "error_message": "Mathematica script has syntax errors.",
+        "notes": "Requires WolframScript to be installed. This gate is optional if WolframScript is not available."
+      }
+    ],
+    "pre_merge": [
+      {
+        "id": "QG-50",
+        "description": "The implementation plan (plan.md) must have been reviewed and approved by a human.",
+        "language": "all",
+        "approval_required": true,
+        "mandatory": true,
+        "error_message": "The plan has not been approved. Cannot merge without human approval."
+      },
+      {
+        "id": "QG-51",
+        "description": "All tasks in the task breakdown must be marked as completed.",
+        "language": "all",
+        "check": "all_tasks_completed",
+        "mandatory": true,
+        "error_message": "Not all tasks are completed. Review the task breakdown."
+      },
+      {
+        "id": "QG-52",
+        "description": "The decision log must have been updated with any design decisions made during implementation.",
+        "language": "all",
+        "check": "decision_log_updated",
+        "mandatory": true,
+        "error_message": "Decision log may be outdated. Ensure all decisions are recorded."
+      }
+    ]
+  },
+  "gate_execution_rules": {
+    "language_matching": "Only execute gates where the 'language' field matches an entry in the project's 'environment.tech_stack' from harness-config.yaml, or where 'language' is 'all'.",
+    "command_substitution": "Replace placeholders in curly braces ({source_files}, {project}, etc.) with actual values from the project context.",
+    "alt_commands": "If 'command' fails because the tool is not installed, try 'command_alt' if available.",
+    "mandatory_vs_optional": "Mandatory gates (mandatory: true) BLOCK task completion on failure. Optional gates (mandatory: false) produce warnings only.",
+    "max_retries": 2,
+    "retry_behavior": "If a mandatory gate fails, the agent retries the fix-and-check cycle up to max_retries times. After that, it MUST pause and request human guidance."
+  }
+}

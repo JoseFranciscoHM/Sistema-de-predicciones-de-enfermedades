@@ -1,0 +1,120 @@
+# harness-config.yaml
+# =============================================================================
+# Central configuration file for the SDD Harness.
+# The AI agent reads this file at startup to understand the project scope,
+# technology stack, and rules to enforce.
+#
+# INSTRUCTIONS: Fill in the fields below for each new project.
+# Keys marked [REQUIRED] must be completed before starting any SDD phase.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Project Definition [REQUIRED]
+# ---------------------------------------------------------------------------
+project:
+  name: "Prediccion de Enfermedades SLP - RNN"
+  type: "data-science,web-api,web-app,exposition"
+                              #   "embedded"      - Firmware, microcontrollers
+                              #   "fpga"          - VHDL/Verilog FPGA designs
+                              #   "web-api"       - Backend APIs, web services
+                              #   "web-app"       - Frontend web applications
+                              #   "mobile-app"    - Mobile applications
+                              #   "data-science"  - Data analysis, ML/AI
+                              #   "cli-tool"      - Command-line tools
+                              #   "library"       - Reusable libraries/packages
+                              #   "desktop-app"   - Desktop applications
+                              #   "exposition"    - Presentaciones académicas (LaTeX beamer)
+  description: "Sistema completo de predicción de enfermedades basado en RNN (LSTM/GRU) para SLP, México. Cubre hantavirus, COVID-19, dengue, extensible."
+
+# ---------------------------------------------------------------------------
+# Environment & Technology [REQUIRED]
+# ---------------------------------------------------------------------------
+environment:
+  tech_stack: [python,FastAPI,TensorFlow,Pandas,scikit-learn,SQLite,Plotly,HTML,CSS,JavaScript]
+                              # Examples:
+                              #   ["python", "fastapi", "postgresql"]
+                              #   ["c", "esp-idf", "freertos"]
+                              #   ["vhdl", "quartus"]
+                              #   ["python", "pytorch", "pandas"]
+                              #   ["latex"]
+  runtime_version: "3.11"         # Primary runtime version. Example: "3.11", "esp-idf-v5.1"
+  package_manager: "pip"         # Package manager. Options:
+                              #   "pip", "poetry", "conda"      (Python)
+                              #   "idf.py"                       (ESP-IDF)
+                              #   "quartus", "vivado"            (FPGA)
+                              #   "npm", "yarn", "pnpm"          (JavaScript)
+                              #   ""                             (None/manual)
+
+# ---------------------------------------------------------------------------
+# Harness Behavior
+# ---------------------------------------------------------------------------
+harness:
+  specification_language: "RFC-2119"   # Specifications use MUST, MUST NOT, SHOULD, etc.
+  quality_gates_enabled: true          # If true, agent MUST validate against quality-gates.json.
+  security_profile: "data-science,web"         # Security profile to apply. Options:
+                                       #   "embedded"      - Default. Memory safety, input validation.
+                                       #   "data-science"  - Data privacy, API key management.
+                                       #   "web"           - OAuth 2.0, SQL injection prevention.
+                                       #   "custom"        - User-defined in security-rules.md.
+
+# ---------------------------------------------------------------------------
+# Rules to Enforce
+# ---------------------------------------------------------------------------
+# The `enforce` flag determines behavior:
+#   true  = Any violation STOPS the process immediately.
+#   false = Violations are reported as warnings but do not block progress.
+#
+# The absence of a rule file here means it DOES NOT APPLY (not that it's optional).
+rules:
+  - path: "rules/security-rules.md"
+    enforce: true
+  - path: "rules/coding-standards.md"
+    enforce: true
+  - path: "rules/quality-gates.json"
+    enforce: true
+
+# ---------------------------------------------------------------------------
+# Workflow Configuration
+# ---------------------------------------------------------------------------
+workflows:
+  registry_path: "workflows/registry.yaml"
+
+# ---------------------------------------------------------------------------
+# Custom Quality Gates (Optional)
+# ---------------------------------------------------------------------------
+# Add project-specific quality gates here. These are APPENDED to the defaults
+# in quality-gates.json. Use the same schema.
+custom_quality_gates: []
+  # Example:
+  # - id: "QG-CUSTOM-01"
+  #   description: "Custom project-specific check"
+  #   language: "python"
+  #   command: "python scripts/validate.py"
+  #   mandatory: true
+
+# ---------------------------------------------------------------------------
+# Configuración de Exposición (solo aplica si project.type = "exposition")
+# ---------------------------------------------------------------------------
+# El agente lee esta sección cuando detecta project.type: exposition.
+#
+# REGLA CRÍTICA: Los campos title, subtitle, author, institution y date
+# NO deben inferirse de la fuente de contenido. El agente DEBE preguntar
+# estos datos EXPLÍCITAMENTE al usuario durante /specify.
+#
+# El autor del paper ≠ el expositor.
+# El título del paper ≠ el título de la exposición.
+# La institución de los autores ≠ la institución del expositor.
+# ---------------------------------------------------------------------------
+exposition:
+  topic: "Sistema de prediccion de enfermedades con Redes neuronales recurrentes"
+  title: "Sistema de prediccion de enfermedades con Redes neuronales recurrentes"
+  subtitle: ""
+  author: "Jose Francisco Hernandez Martinez"
+  institution: "Universidad Autonoma de San Luis Potosi, Intituto de Investigacion en Comunicacion Optica"
+  date: "Mayo 2026"
+  estimated_duration: ""
+  audience: ""
+  language: "es"
+                              # Por defecto: "es" (español).
+                              # IMPORTANTE: Solo cambiar con confirmación EXPLÍCITA del usuario.
+                              # El idioma de la fuente NO determina el idioma de la presentación.
