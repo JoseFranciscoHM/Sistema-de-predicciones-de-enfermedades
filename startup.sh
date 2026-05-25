@@ -4,6 +4,8 @@ set -e
 echo "=== Inicializando base de datos ==="
 cd /app
 
+pip install python-multipart -q
+
 mkdir -p data models
 
 if [ ! -f data/database.db ]; then
