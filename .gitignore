@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 data/database.db
+data/database.db-*
 *.keras
 models/
 .venv/
@@ -11,3 +12,9 @@ models/
 .idea/
 *.egg-info/
 dist/
+*.aux
+*.log
+*.out
+*.nav
+*.snm
+*.toc

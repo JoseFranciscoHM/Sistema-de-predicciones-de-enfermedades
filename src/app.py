@@ -11,9 +11,6 @@ from typing import Any, Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "."))
 
-import atexit
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -32,38 +29,6 @@ logger = logging.getLogger("app")
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "database.db"
-
-# --- Inicializacion al arrancar ---
-os.makedirs(Path(DB_PATH).parent, exist_ok=True)
-os.makedirs(Path(DB_PATH).parent.parent / "models", exist_ok=True)
-
-db_init = Database(str(DB_PATH))
-
-if not Path(DB_PATH).exists() or os.path.getsize(DB_PATH) < 4096:
-    logger.info("Generando datos sinteticos iniciales...")
-    from synthetic_data import generate_all_synthetic_data
-    generate_all_synthetic_data(db_init)
-    logger.info("Datos sinteticos generados exitosamente")
-
-    def _train_all():
-        import subprocess
-        base = Path(__file__).resolve().parent.parent
-        for disease in ["dengue", "hantavirus", "covid"]:
-            model_path = base / "models" / f"{disease}_model.keras"
-            if not model_path.exists():
-                logger.info(f"Entrenando modelo {disease}...")
-                subprocess.run(
-                    [sys.executable, str(base / "src" / "train_model.py"), "--disease", disease, "--epochs", "2"],
-                    cwd=str(base),
-                    env={**os.environ, "PYTHONPATH": str(base / "src")},
-                    capture_output=True,
-                )
-                logger.info(f"Modelo {disease} entrenado")
-
-    thread = threading.Thread(target=_train_all, daemon=True)
-    thread.start()
-
-db_init.close()
 
 app = FastAPI(title="Prediccion de Enfermedades SLP", version="1.0")
 
