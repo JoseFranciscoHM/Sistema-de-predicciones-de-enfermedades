@@ -1,3 +1,4 @@
+# Dependencias para Railway deployment - v3
 tensorflow==2.18.0
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
